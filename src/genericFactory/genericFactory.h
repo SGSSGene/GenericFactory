@@ -9,7 +9,7 @@
 namespace genericFactory {
 	template<typename Base>
 	struct Class {
-		std::function<std::shared_ptr<Base>()> creationFunc;
+		std::function<std::unique_ptr<Base>()> creationFunc;
 		std::function<bool(Base*)>             testFunc;
 	};
 
@@ -28,16 +28,16 @@ namespace genericFactory {
 			}
 			classList[_name] = _class;
 		}
-		static std::shared_ptr<Base> createClass(std::string const& _name) {
+		static std::unique_ptr<Base> createClass(std::string const& _name) {
 			if (classList.find(_name) != classList.end()) {
 				return classList.at(_name).creationFunc();
 			}
 			return nullptr;
 		}
-		static std::shared_ptr<Base> createDefaultClass() {
+		static std::unique_ptr<Base> createDefaultClass() {
 			return createClass(getDefaultName());
 		}
-		static void advance(std::shared_ptr<Base>& base, int step) {
+		static void advance(std::unique_ptr<Base>& base, int step) {
 			auto iter = classList.cbegin();
 			for (; iter != classList.cend(); ++iter) {
 				if (iter->second.testFunc(base.get())) {
@@ -71,7 +71,7 @@ namespace genericFactory {
 	public:
 		GenericFactoryItem(std::string const& _name, bool _default = false)
 			: GenericFactory<Base>(_name,
-			                       {[]() { return std::make_shared<T>(); },
+			                       {[]() { return std::unique_ptr<T>(new T); },
 			                       [](Base* b) { return dynamic_cast<T*>(b) != nullptr; }},
 			                       _default)
 		{}
