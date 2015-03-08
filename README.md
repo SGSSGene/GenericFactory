@@ -21,20 +21,23 @@ struct B2 : public A {
 
 // Register class at factory with B2 as default
 namespace {
-	genericFactory::GenericFactoryItem<A, B1> item1("B1");
-	genericFactory::GenericFactoryItem<A, B2> item2("B2", true);
+	genericFactory::Register<A, B1> item1("B1");
+	genericFactory::Register<A, B2> item2("B2", true);
 }
 ```
 ### Using the Factory
 ```c
 int main(int, char**) {
-	auto a_ptr  = genericFactory::GenericFactory<A>::createDefaultClass();
-	a_ptr->bar();
-	auto b_ptr = genericFactory::GenericFactory<A>::createClass("B1");
-	b_ptr->bar();
+	genericFactory::Item<A> a_default();
+	genericFactory::Item<A> a_b1("B1");
+	genericFactory::Item<A> a_b2("B2");
+	a_default->bar();
+	a_b1->bar();
+	a_b2->bar();
 
-	for (auto c : genericFactory::GenericFactory<A>::getClassList()) {
-		std::cout << c.first << std::endl;
+	std::set<std::string classList = genericFactory::Item<A>::getClassList();
+	for (auto c : classList) {
+		std::cout << c << std::endl;
 	}
 	return 0;
 }
