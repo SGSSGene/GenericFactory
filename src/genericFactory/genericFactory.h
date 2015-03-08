@@ -15,30 +15,34 @@ namespace genericFactory {
 		std::function<bool(Base const*)>  testFunc;
 	};
 
+	template<typename T>
+	class Item;
+
 	template<typename Base>
 	class GenericFactory {
 	private:
 		static std::map<std::string, Class<Base>> classList;
+
+		friend class Item<Base>;
 		static std::string& getDefaultName() {
 			static std::string defaultName;
 			return defaultName;
 		}
-	public:
+	protected:
 		GenericFactory(std::string const& _name, Class<Base> _class, bool _default) {
 			if (classList.size() == 0 || _default) {
 				getDefaultName() = _name;
 			}
 			classList[_name] = _class;
 		}
+	private:
 		static Base* createClass(std::string const& _name) {
 			if (classList.find(_name) != classList.end()) {
 				return classList.at(_name).creationFunc();
 			}
 			return nullptr;
 		}
-		static Base* createDefaultClass() {
-			return createClass(getDefaultName());
-		}
+
 		static Base* copyClass(Base const* base) {
 			auto iter = classList.cbegin();
 			for (; iter != classList.cend(); ++iter) {
@@ -77,11 +81,14 @@ namespace genericFactory {
 	};
 	template<typename Base>
 	class Item {
+		std::string type;
 		std::unique_ptr<Base> base;
 	public:
-		Item() {
-			base = std::unique_ptr<Base>(GenericFactory<Base>::createDefaultClass());
+		Item()
+			: type(GenericFactory<Base>::getDefaultName())
+			, base(GenericFactory<Base>::createClass(type)) {
 		}
+
 		Item(Item const& _item) {
 			*this = _item;
 		}
@@ -89,8 +96,9 @@ namespace genericFactory {
 			*this = std::move(_item);
 		}
 
-		Item(std::string const _name) {
-			base = std::unique_ptr<Base>(GenericFactory<Base>::createClass(_name));
+		Item(std::string const _type)
+			: type(_type)
+			, base(GenericFactory<Base>::createClass(type)) {
 		}
 
 		Base const& operator*() const {
@@ -113,6 +121,9 @@ namespace genericFactory {
 		Item& operator=(Item&& _item) {
 			base = std::move(_item.base);
 			return *this;
+		}
+		std::string const& getType() const {
+			return type;
 		}
 		static std::set<std::string> getClassList() {
 			return GenericFactory<Base>::getClassList();
