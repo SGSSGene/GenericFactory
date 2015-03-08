@@ -49,27 +49,6 @@ namespace genericFactory {
 			return nullptr;
 		}
 
-		static void advance(std::unique_ptr<Base>& base, int step) {
-			auto iter = classList.cbegin();
-			for (; iter != classList.cend(); ++iter) {
-				if (iter->second.testFunc(base.get())) {
-					break;
-				}
-			}
-
-			if (step > 0) {
-				++iter;
-				if (iter == classList.cend()) {
-					iter = classList.cbegin();
-				}
-			} else if (step < 0) {
-				if (iter == classList.cbegin()) {
-					iter = classList.cend();
-				}
-				--iter;
-			}
-			base = iter->second.creationFunc();
-		}
 		static std::set<std::string> getClassList() {
 			std::set<std::string> classNameSet;
 			for (auto const& e : classList) {
