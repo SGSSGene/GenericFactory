@@ -4,13 +4,15 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 
 namespace genericFactory {
 	template<typename Base>
 	struct Class {
-		std::function<std::unique_ptr<Base>()> creationFunc;
-		std::function<bool(Base*)>             testFunc;
+		std::function<Base*()>            creationFunc;
+		std::function<Base*(Base const*)> copyFunc;
+		std::function<bool(Base const*)>  testFunc;
 	};
 
 	template<typename Base>
@@ -28,15 +30,25 @@ namespace genericFactory {
 			}
 			classList[_name] = _class;
 		}
-		static std::unique_ptr<Base> createClass(std::string const& _name) {
+		static Base* createClass(std::string const& _name) {
 			if (classList.find(_name) != classList.end()) {
 				return classList.at(_name).creationFunc();
 			}
 			return nullptr;
 		}
-		static std::unique_ptr<Base> createDefaultClass() {
+		static Base* createDefaultClass() {
 			return createClass(getDefaultName());
 		}
+		static Base* copyClass(Base const* base) {
+			auto iter = classList.cbegin();
+			for (; iter != classList.cend(); ++iter) {
+				if (iter->second.testFunc(base)) {
+					return iter->second.copyFunc(base);
+				}
+			}
+			return nullptr;
+		}
+
 		static void advance(std::unique_ptr<Base>& base, int step) {
 			auto iter = classList.cbegin();
 			for (; iter != classList.cend(); ++iter) {
@@ -58,8 +70,12 @@ namespace genericFactory {
 			}
 			base = iter->second.creationFunc();
 		}
-		static std::map<std::string, Class<Base>> const& getClassList() {
-			return classList;
+		static std::set<std::string> getClassList() {
+			std::set<std::string> classNameSet;
+			for (auto const& e : classList) {
+				classNameSet.insert(e.first);
+			}
+			return classNameSet;
 		}
 	};
 	template<typename Base>
@@ -67,14 +83,62 @@ namespace genericFactory {
 
 
 	template<typename Base, typename T>
-	class GenericFactoryItem : public GenericFactory<Base> {
+	class Register : public GenericFactory<Base> {
 	public:
-		GenericFactoryItem(std::string const& _name, bool _default = false)
+		Register(std::string const& _name, bool _default = false)
 			: GenericFactory<Base>(_name,
-			                       {[]() { return std::unique_ptr<T>(new T); },
-			                       [](Base* b) { return dynamic_cast<T*>(b) != nullptr; }},
+			                       {[]() { return new T; },
+			                       [](Base const* b) {
+				                       T const* t = dynamic_cast<T const*>(b);
+				                       return new T(*t);
+			                       },
+			                       [](Base const* b) { return dynamic_cast<T const*>(b) != nullptr; }},
 			                       _default)
 		{}
+	};
+	template<typename Base>
+	class Item {
+		std::unique_ptr<Base> base;
+	public:
+		Item() {
+			base = std::unique_ptr<Base>(GenericFactory<Base>::createDefaultClass());
+		}
+		Item(Item const& _item) {
+			*this = _item;
+		}
+		Item(Item&& _item) {
+			*this = std::move(_item);
+		}
+
+		Item(std::string const _name) {
+			base = std::unique_ptr<Base>(GenericFactory<Base>::createClass(_name));
+		}
+
+		Base const& operator*() const {
+			return *(base.get());
+		}
+		Base& operator*() {
+			return *(base.get());
+		}
+		Base const* operator->() const {
+			return base.get();
+		}
+		Base* operator->() {
+			return base.get();
+		}
+
+		Item& operator=(Item const& _item) {
+			base.reset(GenericFactory<Base>::copyClass(_item.base.get()));
+			return *this;
+		}
+		Item& operator=(Item&& _item) {
+			base = std::move(_item.base);
+			return *this;
+		}
+		static std::set<std::string> getClassList() {
+			return GenericFactory<Base>::getClassList();
+		}
+
 	};
 }
 #endif

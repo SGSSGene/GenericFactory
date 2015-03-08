@@ -17,8 +17,8 @@ public:
 
 // Register class at factory
 namespace {
-	genericFactory::GenericFactoryItem<A, B1> item1("B1", true);
-	genericFactory::GenericFactoryItem<A, B2> item2("B2");
+	genericFactory::Register<A, B1> item1("B1", true);
+	genericFactory::Register<A, B2> item2("B2");
 }
 
 

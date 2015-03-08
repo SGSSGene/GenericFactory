@@ -3,20 +3,31 @@
 
 int main(int, char**) {
 	{
-		auto a_ptr  = genericFactory::GenericFactory<A>::createDefaultClass();
+		genericFactory::Item<A> a_ptr;
 		a_ptr->bar();
 	}
 	{
-		auto a_ptr = genericFactory::GenericFactory<A>::createClass("B1");
+		genericFactory::Item<A> a_ptr("B1");
 		a_ptr->bar();
 	}
 	{
-		auto a_ptr = genericFactory::GenericFactory<A>::createClass("B2");
+		genericFactory::Item<A> a_ptr("B2");
 		a_ptr->bar();
 	}
 	{
-		for (auto c : genericFactory::GenericFactory<A>::getClassList()) {
-			std::cout << c.first << std::endl;
+		genericFactory::Item<A> a1_ptr("B1");
+		genericFactory::Item<A> a2_ptr("B2");
+		a1_ptr = a2_ptr;
+		a1_ptr->bar();
+	}
+	{
+		genericFactory::Item<A> a1_ptr("B1");
+		genericFactory::Item<A> a2_ptr(a1_ptr);
+		a2_ptr->bar();
+	}
+	{
+		for (auto const& c : genericFactory::Item<A>::getClassList()) {
+			std::cout << c << std::endl;
 		}
 	}
 
