@@ -1,6 +1,7 @@
 #ifndef GENERICFACTORY_GENERICFACTORY_H
 #define GENERICFACTORY_GENERICFACTORY_H
 
+#include <cassert>
 #include <functional>
 #include <map>
 #include <memory>
@@ -66,18 +67,41 @@ namespace genericFactory {
 
 
 	template<typename Base, typename T>
+	auto _getCopyFunc(int, std::function<Base*(Base const*)> b) -> decltype((std::function<Base*(Base const*)>)(new T((T const &)(T())), b)) {
+		std::function<Base*(Base const*)> f = [](Base const* b) {
+			T const* t = dynamic_cast<T const*>(b);
+			return new T(*t);
+		};
+		return f;
+	}
+	template<typename Base, typename T>
+	auto _getCopyFunc(long, std::function<Base*(Base const*)> b) -> decltype(b) {
+		return [](Base const*) {
+			assert(false && "Item doesn't have copy constructor implemented");
+			return nullptr;
+		};
+	}
+
+	template<typename Base, typename T>
+	std::function<Base*(Base const*)> getCopyFunc() {
+		return _getCopyFunc<Base, T>(int(0), std::function<Base*(Base const*)>());
+	}
+
+
+
+
+	template<typename Base, typename T>
 	class Register : public GenericFactory<Base> {
 	public:
 		Register(std::string const& _name, bool _default = false)
 			: GenericFactory<Base>(_name,
-			                       {[]() { return new T; },
-			                       [](Base const* b) {
-				                       T const* t = dynamic_cast<T const*>(b);
-				                       return new T(*t);
-			                       },
+			                       Class<Base> {[]() { return new T; },
+			                       genericFactory::getCopyFunc<Base, T>(),
 			                       [](Base const* b) { return dynamic_cast<T const*>(b) != nullptr; }},
 			                       _default)
-		{}
+		{
+
+		}
 	};
 	template<typename Base>
 	class Item {
@@ -101,13 +125,13 @@ namespace genericFactory {
 			, base(GenericFactory<Base>::createClass(type)) {
 		}
 
-		Base const& operator*() const {
+		Base& operator*() const {
 			return *(base.get());
 		}
 		Base& operator*() {
 			return *(base.get());
 		}
-		Base const* operator->() const {
+		Base* operator->() const {
 			return base.get();
 		}
 		Base* operator->() {
@@ -115,10 +139,12 @@ namespace genericFactory {
 		}
 
 		Item& operator=(Item const& _item) {
+			type = _item.type;
 			base.reset(GenericFactory<Base>::copyClass(_item.base.get()));
 			return *this;
 		}
 		Item& operator=(Item&& _item) {
+			type = _item.type;
 			base = std::move(_item.base);
 			return *this;
 		}
