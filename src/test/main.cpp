@@ -3,30 +3,36 @@
 
 int main(int, char**) {
 	{
-		genericFactory::Item<A> a_ptr;
+		genericFactory::Item<Base1> a_ptr;
 		a_ptr->bar();
 	}
 	{
-		genericFactory::Item<A> a_ptr("B1");
+		genericFactory::Item<Base1> a_ptr("Base1_C1");
 		a_ptr->bar();
 	}
 	{
-		genericFactory::Item<A> a_ptr("B2");
+		genericFactory::Item<Base1> a_ptr("Base1_C2");
 		a_ptr->bar();
 	}
 	{
-		genericFactory::Item<A> a1_ptr("B1");
-		genericFactory::Item<A> a2_ptr("B2");
+		genericFactory::Item<Base1> a1_ptr;
+		genericFactory::Item<Base1> a2_ptr;
 		a1_ptr = a2_ptr;
 		a1_ptr->bar();
 	}
 	{
-		genericFactory::Item<A> a1_ptr("B1");
-		genericFactory::Item<A> a2_ptr(a1_ptr);
+		genericFactory::Item<Base1> a1_ptr("Base1_C1");
+		genericFactory::Item<Base1> a2_ptr(a1_ptr);
 		a2_ptr->bar();
 	}
+/*	{
+		genericFactory::Item<Base1> a1_ptr("Base1_C2");
+		genericFactory::Item<Base1> a2_ptr(a1_ptr);
+		a2_ptr->bar();
+	}*/
+
 	{
-		for (auto const& c : genericFactory::Item<A>::getClassList()) {
+		for (auto const& c : genericFactory::Item<Base1>::getClassList()) {
 			std::cout << c << std::endl;
 		}
 	}

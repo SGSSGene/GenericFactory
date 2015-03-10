@@ -1,7 +1,12 @@
 
 #include "genericFactory/genericFactory.h"
 
-class A {
+class Base1 {
+public:
+	virtual void bar() = 0;
+};
+
+class Base2 {
 public:
 	virtual void bar() = 0;
 };
