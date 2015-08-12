@@ -20,7 +20,7 @@ public:
 // Register class at factory
 namespace {
 	genericFactory::Register<Base1, Base1_C1> item1("Base1_C1", true);
-	genericFactory::Register<Base1, Base1_C2> item2("Base1_C2", true);
+	genericFactory::Register<Base1, Base1_C2> item2("Base1_C2", false);
 }
 
 
