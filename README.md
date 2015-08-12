@@ -1,6 +1,6 @@
 # GenericFactory
 
-This library provides a generic implementation of the factory pattern.
+This library provides a generic implementation of the factory pattern. Can be used with aBuild.
 
 ## Example
 ### Register classes at the factory

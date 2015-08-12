@@ -1,0 +1,11 @@
+{
+	"name": "GenericFactory",
+	"projects": [
+		{ "path": "genericFactory",
+			"type": "library"
+		},
+		{ "path": "testGenericFactory",
+			"type": "executable"
+		}
+	]
+}
