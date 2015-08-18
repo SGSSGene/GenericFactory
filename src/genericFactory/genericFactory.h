@@ -1,3 +1,4 @@
+#pragma once
 #include <map>
 #include <memory>
 #include <set>
@@ -13,7 +14,7 @@ private:
 		static std::map<std::size_t, std::string> map;
 		return map;
 	}
-	static std::map<std::string, std::function<void*()>> getConstructorList() {
+	static std::map<std::string, std::function<void*()>>& getConstructorList() {
 		static std::map<std::string, std::function<void*()>> map;
 		return map;
 	}
@@ -40,14 +41,17 @@ public:
 	template<typename T, typename std::enable_if<not std::is_abstract<T>::value>::type* = nullptr>
 	static void registerClass(std::string const& _name) {
 		getClassList()[typeid(T).hash_code()] = _name;
-		getConstructorList()[_name] = []() -> void* { return new T(); };
+		getConstructorList()[_name] = []() {
+			return (void*)(new T());
+		};
+		getConstructorList()[_name]();
 	}
 
 	template<typename Base, typename T>
 	static void registerClass(std::string const& _name) {
 		auto realName = getType<Base>() + "_" + _name;
 		getClassList()[typeid(T).hash_code()] = realName;
-		getConstructorList()[_name] = []() -> void* { return new T(); };
+		getConstructorList()[realName] = []() -> void* { return new T(); };
 	}
 
 	template<typename T>
@@ -60,14 +64,26 @@ public:
 		return getClassList()[typeid(*t).hash_code()];
 	}
 
+	template<typename T>
+	static bool hasType() {
+		return getClassList().find(typeid(T).hash_code()) != getClassList().end();
+	}
+	template<typename T>
+	static bool hasType(T* t) {
+		return getClassList().find(typeid(*t).hash_code()) != getClassList().end();
+	}
+
 
 	template<typename T>
 	static T* getInstance(std::string const& _name) {
-		return (T*)getConstructorList()[_name]();
+		return (T*)(getConstructorList()[_name]());
 	}
 	template<typename T>
-	static T* getInstance(T const* t) {
-		return (T*)getConstructorList()[getType(t)]();
+	static T* getInstance(T* t) {
+		auto typeName  = getType(t);
+		auto _ctorFunc = getConstructorList()[typeName];
+
+		return (T*)(_ctorFunc());
 	}
 	template<typename T>
 	static std::shared_ptr<T> getSharedInstance(std::string const _name) {
@@ -79,7 +95,7 @@ public:
 	template<typename T>
 	static std::shared_ptr<T> getSharedInstance(std::shared_ptr<T> const& _ptr) {
 		std::shared_ptr<T> ptr;
-		ptr.reset((T*)getConstructorList()[getType(_ptr.get())]());
+		ptr.reset((T*)(getConstructorList()[getType(_ptr.get())]()));
 		return ptr;
 	}
 };
