@@ -2,37 +2,16 @@
 #include <iostream>
 
 int main(int, char**) {
-	{
-		genericFactory::Item<Base1> a_ptr;
-		a_ptr->bar();
-	}
-	{
-		genericFactory::Item<Base1> a_ptr("Base1_C1");
-		a_ptr->bar();
-	}
-	{
-		genericFactory::Item<Base1> a_ptr("Base1_C2");
-		a_ptr->bar();
-	}
-	{
-		genericFactory::Item<Base1> a1_ptr;
-		genericFactory::Item<Base1> a2_ptr;
-		a1_ptr = a2_ptr;
-		a1_ptr->bar();
-	}
-	{
-		genericFactory::Item<Base1> a1_ptr("Base1_C1");
-		genericFactory::Item<Base1> a2_ptr(a1_ptr);
-		a2_ptr->bar();
-	}
 /*	{
-		genericFactory::Item<Base1> a1_ptr("Base1_C2");
-		genericFactory::Item<Base1> a2_ptr(a1_ptr);
-		a2_ptr->bar();
-	}*/
-
+		auto a_ptr = genericFactory::GenericFactory::getSharedInstance<Base1>("Base1_C1");
+		a_ptr->bar();
+	}
 	{
-		for (auto const& c : genericFactory::Item<Base1>::getClassList()) {
+		auto a_ptr = genericFactory::GenericFactory::getSharedInstance<Base1>("Base1_C2");
+		a_ptr->bar();
+	}*/
+	{
+		for (auto const& c : genericFactory::GenericFactory::getValidNames<Base1>()) {
 			std::cout << c << std::endl;
 		}
 	}
