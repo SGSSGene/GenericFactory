@@ -1,11 +1,17 @@
 {
+	"extDependencies": [
+		{ "url": "git@78.47.95.250:aBuild/gtest" }
+	],
+
 	"name": "GenericFactory",
 	"projects": [
 		{ "path": "genericFactory",
 			"type": "library"
 		},
 		{ "path": "testGenericFactory",
-			"type": "executable"
+			"type": "executable",
+			"dependencies": ["gtest/gtest"]
+
 		}
 	]
 }
