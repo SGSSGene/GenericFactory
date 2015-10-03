@@ -41,6 +41,14 @@ namespace {
 	genericFactory::Register<D1_of_D1_of_B, D1_of_B, B> item3("D1_of_D1_of_B");
 }
 
+TEST(Test, Test0) {
+	std::shared_ptr<B> ptr1 = genericFactory::make_shared<B>("D1_of_B");
+	std::unique_ptr<B> ptr2 = genericFactory::make_unique<B>("D1_of_B");
+
+	EXPECT_EQ(ptr1->bar(), "D1_of_B");
+	EXPECT_EQ(ptr2->bar(), "D1_of_B");
+}
+
 TEST(Test, Test1) {
 	auto ptr = genericFactory::make_shared<B>("D1_of_B");
 	EXPECT_EQ(ptr->bar(), "D1_of_B");
