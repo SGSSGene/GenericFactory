@@ -8,10 +8,53 @@
 
 namespace genericFactory {
 
+class Base {
+public:
+	virtual ~Base() {}
+};
+
+template<typename B>
+class BaseT : public Base {
+private:
+	virtual std::shared_ptr<B> createSharedBase() const = 0;
+	virtual B*                 createUniqueBase() const = 0;
+public:
+	template<typename T2>
+	std::shared_ptr<T2> createShared() const {
+		auto ptr1 = createSharedBase();
+		auto ptr2 = std::dynamic_pointer_cast<T2>(ptr1);
+		if (ptr2.get() == nullptr) {
+			throw std::runtime_error("can't create shared pointer (genericFactory)");
+		}
+		return ptr2;
+	}
+	template<typename T2>
+	std::unique_ptr<T2> createUnique() const {
+		auto ptr1 = createUniqueBase();
+		auto ptr2 = dynamic_cast<T2*>(ptr1);
+		if (ptr2 == nullptr) {
+			delete ptr1;
+			throw std::runtime_error("can't create unique pointer (genericFactory)");
+		}
+		return std::unique_ptr<T2> { ptr2 };
+	}
+};
+
+template<typename B, typename T>
+class BaseTT final : public BaseT<B> {
+public:
+	std::shared_ptr<B> createSharedBase() const override {
+		return std::make_shared<T>();
+	}
+	B* createUniqueBase() const override {
+		return new T();
+	}
+};
+
 class GenericFactory {
 private:
-	std::map<std::size_t, std::string>            classList;
-	std::map<std::string, std::function<void*()>> constructorList;
+	std::map<std::size_t, std::string>                        classList;
+	std::map<std::string, std::vector<std::unique_ptr<Base>>> constructorList;
 
 public:
 	static GenericFactory& getInstance() {
@@ -34,26 +77,23 @@ public:
 
 	template<typename T, typename std::enable_if<std::is_abstract<T>::value>::type* = nullptr>
 	void registerClass(std::string const& _name) {
+		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
 		classList[typeid(T).hash_code()] = _name;
-		std::cout<<"is abstrict"<<std::endl;
 	}
 
 	template<typename T, typename std::enable_if<not std::is_abstract<T>::value>::type* = nullptr>
 	void registerClass(std::string const& _name) {
+		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
 		classList[typeid(T).hash_code()] = _name;
-		constructorList[_name] = [] {
-			return (void*)(new T());
-		};
+		constructorList[_name].emplace_back(new BaseTT<T, T>());
 	}
 
-	template<typename Base, typename T>
+	template<typename T, typename Base, typename ...Bases>
 	void registerClass(std::string const& _name) {
-		//auto realName = getType<Base>() + "_" + _name;
-		auto realName = _name;
-		classList[typeid(T).hash_code()] = realName;
-		constructorList[realName] = [] { return (void*)new T(); };
+		registerClass<T, Bases...>(_name);
+		classList[typeid(T).hash_code()] = _name;
+		constructorList[_name].emplace_back(new BaseTT<Base, T>());
 	}
-
 	template<typename T>
 	std::string const& getType() const {
 		return classList.at(typeid(T).hash_code());
@@ -75,62 +115,62 @@ public:
 
 
 	template<typename T>
-	T* getItem(std::string const& _name) const {
-		return (T*)(constructorList.at(_name)());
-	}
-	template<typename T>
-	T* getItem(T* t) const {
-		auto typeName  = getType(t);
-		auto _ctorFunc = constructorList.at(typeName);
-
-		return (T*)(_ctorFunc());
+	std::unique_ptr<T> getUniqueItem(std::string const& _name) const {
+		for (auto const& base : constructorList.at(_name)) {
+			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
+			if (ptr != nullptr) {
+				return std::unique_ptr<T> { ptr->template createUnique<T>() };
+			}
+		}
+		throw std::runtime_error("couldn't create unique item");
 	}
 	template<typename T>
 	std::shared_ptr<T> getSharedItem(std::string const _name) const {
-		std::shared_ptr<T> ptr;
-		ptr.reset((T*)(constructorList.at(_name)()));
-		return ptr;
-	}
-
-	template<typename T>
-	std::shared_ptr<T> getSharedItem(std::shared_ptr<T> const& _ptr) const {
-		std::shared_ptr<T> ptr;
-		ptr.reset((T*)(constructorList.at(getType(_ptr.get()))()));
-		return ptr;
+		for (auto const& base : constructorList.at(_name)) {
+			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
+			if (ptr != nullptr) {
+				return ptr->template createShared<T>();
+			}
+		}
+		throw std::runtime_error("couldn't create shared item");
 	}
 };
 
-template<typename ...T>
-class Register;
 
-template<typename T>
-class Register<T> {
+template<typename T, typename ...Bases>
+class Register {
 public:
 	Register(std::string const& _name) {
-		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
-		GenericFactory::getInstance().registerClass<T>(_name);
-	}
-};
-template<typename Base, typename T>
-class Register<Base, T> {
-public:
-	Register(std::string const& _name) {
-		static_assert(std::is_polymorphic<Base>::value, "must be polymorphic type");
-		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
-		static_assert(std::is_base_of<Base, T>::value, "Base must be base of T");
-		GenericFactory::getInstance().registerClass<Base, T>(_name);
+		staticAssertClass<T, Bases...>();
+		GenericFactory::getInstance().registerClass<T, Bases...>(_name);
 		std::cout<<genericFactory::GenericFactory::getInstance().hasType("Base1")<<std::endl;
 	}
+private:
+	template<typename T2>
+	void staticAssertClass() const {
+		static_assert(std::is_polymorphic<T2>::value, "must be polymorphic type");
+		static_assert(std::has_virtual_destructor<T2>::value, "must have a virtual destructor");
+	}
+	template<typename T2, typename Base, typename ...Bases2>
+	void staticAssertClass() const {
+		staticAssertClass<Base, Bases2...>();
+		static_assert(std::is_polymorphic<Base>::value, "must be polymorphic type");
+		static_assert(std::is_polymorphic<T2>::value, "must be polymorphic type");
+		static_assert(std::is_base_of<Base, T>::value, "Base must be base of T");
+		static_assert(std::has_virtual_destructor<T2>::value, "must have a virtual destructor");
+	}
+
+
 };
 
 
 template<typename T>
-inline std::shared_ptr<T> getSharedInstance(std::string const& _name) {
+inline std::shared_ptr<T> make_shared(std::string const& _name) {
 	return GenericFactory::getInstance().getSharedItem<T>(_name);
 }
 template<typename T>
-inline std::unique_ptr<T> getUniqueInstance(std::string const& _name) {
-	return GenericFactory::getInstance().getItem<T>(_name);
+inline std::unique_ptr<T> make_unique(std::string const& _name) {
+	return GenericFactory::getInstance().getUniqueItem<T>(_name);
 }
 
 }

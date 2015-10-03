@@ -1,41 +1,83 @@
-/** \example ./src/testGenericFactory/test.cpp
+/** \example src/testGenericFactory/test.cpp
  */
 
 #include <iostream>
 #include <gtest/gtest.h>
 #include <genericFactory/genericFactory.h>
 
-class Base1 {
+class B {
 public:
+	virtual ~B() {}
 	virtual std::string bar() = 0;
 };
 
-class Deriv1_of_Base1 : public Base1 {
+class D1_of_B : public B {
 public:
 	std::string bar() override {
-		return "Deriv1_of_Base1";
+		return "D1_of_B";
 	}
 };
 
-class Deriv2_of_Base1 : public Base1 {
+class D2_of_B final : public B {
 public:
 	std::string bar() override {
-		return "Deriv2_of_Base1";
+		return "D2_of_B";
 	}
 };
+
+class D1_of_D1_of_B : public D1_of_B {
+public:
+	std::string bar() override {
+		return "D1_of_D1_of_B";
+	}
+};
+
 
 // Register class at factory
 namespace {
-	genericFactory::Register<Base1>                  base("Base1");
-	genericFactory::Register<Base1, Deriv1_of_Base1> item1("Deriv1_of_Base1");
-	genericFactory::Register<Base1, Deriv2_of_Base1> item2("Deriv2_of_Base1");
+	genericFactory::Register<B>                         base("B");
+	genericFactory::Register<D1_of_B, B>                item1("D1_of_B");
+	genericFactory::Register<D2_of_B, B>                item2("D2_of_B");
+	genericFactory::Register<D1_of_D1_of_B, D1_of_B, B> item3("D1_of_D1_of_B");
 }
 
 TEST(Test, Test1) {
-	auto ptr1 = genericFactory::getSharedInstance<Base1>("Deriv1_of_Base1");
-	std::cout<<ptr1->bar()<<std::endl;
-	EXPECT_EQ(10, 10);
+	auto ptr = genericFactory::make_shared<B>("D1_of_B");
+	EXPECT_EQ(ptr->bar(), "D1_of_B");
 }
+
+TEST(Test, Test2) {
+	auto ptr = genericFactory::make_shared<B>("D1_of_D1_of_B");
+	EXPECT_EQ(ptr->bar(), "D1_of_D1_of_B");
+}
+
+TEST(Test, Test3) {
+	auto ptr = genericFactory::make_shared<B>("D2_of_B");
+	EXPECT_EQ(ptr->bar(), "D2_of_B");
+}
+TEST(Test, Test4) {
+	EXPECT_ANY_THROW(genericFactory::make_shared<D2_of_B>("Deriv1_Deriv1_of_Base1"));
+}
+TEST(Test, Test5) {
+	auto ptr = genericFactory::make_unique<B>("D1_of_B");
+	EXPECT_EQ(ptr->bar(), "D1_of_B");
+}
+
+TEST(Test, Test6) {
+	auto ptr = genericFactory::make_unique<B>("D1_of_D1_of_B");
+	EXPECT_EQ(ptr->bar(), "D1_of_D1_of_B");
+}
+
+TEST(Test, Test7) {
+	auto ptr = genericFactory::make_unique<B>("D2_of_B");
+	EXPECT_EQ(ptr->bar(), "D2_of_B");
+}
+TEST(Test, Test8) {
+	EXPECT_ANY_THROW(genericFactory::make_unique<D2_of_B>("Deriv1_Deriv1_of_Base1"));
+}
+
+
+
 
 
 
