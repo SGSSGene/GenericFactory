@@ -164,14 +164,35 @@ private:
 };
 
 
-template<typename T>
+template<typename T, typename std::enable_if<std::is_polymorphic<T>::value>::type* = nullptr>
 inline std::shared_ptr<T> make_shared(std::string const& _name) {
 	return GenericFactory::getInstance().getSharedItem<T>(_name);
 }
-template<typename T>
+template<typename T, typename std::enable_if<not std::is_polymorphic<T>::value>::type* = nullptr>
+inline std::shared_ptr<T> make_shared(std::string const& _name) {
+	throw std::runtime_error("this should not happen (genericFactory");
+}
+
+template<typename T, typename std::enable_if<std::is_polymorphic<T>::value>::type* = nullptr>
 inline std::unique_ptr<T> make_unique(std::string const& _name) {
 	return GenericFactory::getInstance().getUniqueItem<T>(_name);
 }
+template<typename T, typename std::enable_if<not std::is_polymorphic<T>::value>::type* = nullptr>
+inline std::unique_ptr<T> make_unique(std::string const& _name) {
+	throw std::runtime_error("this should not happen (genericFactory");
+}
+
+template<typename T>
+inline std::shared_ptr<T> make_shared(T* _t) {
+	auto type = GenericFactory::getInstance().getType(_t);
+	return make_shared<T>(type);
+}
+template<typename T>
+inline std::unique_ptr<T> make_unique(T* _t) {
+	auto type = GenericFactory::getInstance().getType(_t);
+	return make_unique<T>(type);
+}
+
 
 }
 
