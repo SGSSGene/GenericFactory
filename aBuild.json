@@ -1,6 +1,6 @@
 {
 	"extDependencies": [
-		{ "url": "git@78.47.95.250:aBuild/gtest" }
+		{ "url": "git@cakeface.de:aBuild/gtest" }
 	],
 
 	"name": "GenericFactory",
