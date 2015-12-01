@@ -55,6 +55,7 @@ class GenericFactory {
 private:
 	std::map<std::size_t, std::string>                        classList;
 	std::map<std::string, std::vector<std::unique_ptr<Base>>> constructorList;
+	std::map<std::size_t, std::set<std::string>>              inheritanceMap;
 
 public:
 	static GenericFactory& getInstance() {
@@ -64,14 +65,11 @@ public:
 
 	template<typename T>
 	std::set<std::string> getValidNames() const {
-		std::set<std::string> validNames;
-		auto typeName = getType<T>() + "_";
-		for (auto const& e : classList) {
-			if (0 == e.second.find(typeName)) {
-				validNames.insert(e.second);
-			}
+		auto hash = typeid(T).hash_code();
+		if (inheritanceMap.count(hash) == 0) {
+			return {};
 		}
-		return validNames;
+		return inheritanceMap.at(hash);
 	}
 
 
@@ -86,6 +84,7 @@ public:
 		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<T, T>());
+		inheritanceMap[typeid(T).hash_code()].insert(_name);
 	}
 
 	template<typename T, typename Base, typename ...Bases>
@@ -93,6 +92,7 @@ public:
 		registerClass<T, Bases...>(_name);
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<Base, T>());
+		inheritanceMap[typeid(Base).hash_code()].insert(_name);
 	}
 	template<typename T>
 	std::string const& getType() const {
@@ -161,6 +161,17 @@ private:
 
 
 };
+
+
+template<typename T, typename std::enable_if<std::is_polymorphic<T>::value>::type* = nullptr>
+inline std::set<std::string> getClassList() {
+	return GenericFactory::getInstance().getValidNames<T>();
+}
+template<typename T, typename std::enable_if<not std::is_polymorphic<T>::value>::type* = nullptr>
+inline std::set<std::string> getClassList() {
+	throw std::runtime_error("this should not happen (genericFactory");
+}
+
 
 
 template<typename T, typename std::enable_if<std::is_polymorphic<T>::value>::type* = nullptr>

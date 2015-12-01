@@ -84,6 +84,12 @@ TEST(Test, Test8) {
 	EXPECT_ANY_THROW(genericFactory::make_unique<D2_of_B>("Deriv1_Deriv1_of_Base1"));
 }
 
+TEST(Test, Test9) {
+	auto names = genericFactory::getClassList<B>();
+	std::set<std::string> expect {"D1_of_B", "D2_of_B", "D1_of_D1_of_B"};
+	EXPECT_EQ(expect, names);
+}
+
 
 
 
