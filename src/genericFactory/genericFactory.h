@@ -143,7 +143,6 @@ public:
 	Register(std::string const& _name) {
 		staticAssertClass<T, Bases...>();
 		GenericFactory::getInstance().registerClass<T, Bases...>(_name);
-		std::cout<<genericFactory::GenericFactory::getInstance().hasType("Base1")<<std::endl;
 	}
 private:
 	template<typename T2>
