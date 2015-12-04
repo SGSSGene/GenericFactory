@@ -8,9 +8,14 @@
 		{ "path": "genericFactory",
 			"type": "library"
 		},
+		{
+			"path": "exampleLib",
+			"dependencies": ["GenericFactory/genericFactory"],
+			"wholeArchive": true
+		},
 		{ "path": "testGenericFactory",
 			"type": "executable",
-			"dependencies": ["gtest/gtest"]
+			"dependencies": ["gtest/gtest", "GenericFactory/exampleLib"]
 
 		}
 	]

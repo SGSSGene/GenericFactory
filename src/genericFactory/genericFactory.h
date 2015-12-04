@@ -5,6 +5,7 @@
 #include <string>
 #include <typeinfo>
 #include <type_traits>
+#include <vector>
 
 namespace genericFactory {
 

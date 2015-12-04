@@ -4,6 +4,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <genericFactory/genericFactory.h>
+#include <exampleLib/A.h>
 
 class B {
 public:
@@ -87,6 +88,12 @@ TEST(Test, Test8) {
 TEST(Test, Test9) {
 	auto names = genericFactory::getClassList<B>();
 	std::set<std::string> expect {"D1_of_B", "D2_of_B", "D1_of_D1_of_B"};
+	EXPECT_EQ(expect, names);
+}
+
+TEST(Test, Test10) {
+	auto names = genericFactory::getClassList<A>();
+	std::set<std::string> expect {"D1_of_A", "D2_of_A", "D1_of_D1_of_A"};
 	EXPECT_EQ(expect, names);
 }
 
