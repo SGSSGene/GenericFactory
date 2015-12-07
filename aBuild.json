@@ -11,6 +11,7 @@
 		{
 			"path": "exampleLib",
 			"dependencies": ["GenericFactory/genericFactory"],
+			"optDependencies": ["Serializer/serializer"],
 			"wholeArchive": true
 		},
 		{ "path": "testGenericFactory",

@@ -7,6 +7,19 @@
 #include <type_traits>
 #include <vector>
 
+#ifdef ABUILD_SERIALIZER
+	namespace serializer {
+	namespace json {
+		class SerializerNode;
+		class DeserializerNode;
+	}
+	namespace binary {
+		class SerializerNode;
+		class DeserializerNode;
+	}}
+#endif
+
+
 namespace genericFactory {
 
 class Base {
@@ -20,6 +33,12 @@ private:
 	virtual std::shared_ptr<B> createSharedBase() const = 0;
 	virtual B*                 createUniqueBase() const = 0;
 public:
+#ifdef ABUILD_SERIALIZER
+	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const = 0;
+	virtual void serialize(B* _base, serializer::json::DeserializerNode& node) const = 0;
+	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const = 0;
+	virtual void serialize(B* _base, serializer::binary::DeserializerNode& node) const = 0;
+#endif
 	template<typename T2>
 	std::shared_ptr<T2> createShared() const {
 		auto ptr1 = createSharedBase();
@@ -39,6 +58,7 @@ public:
 		}
 		return std::unique_ptr<T2> { ptr2 };
 	}
+
 };
 
 template<typename B, typename T>
@@ -50,6 +70,21 @@ public:
 	B* createUniqueBase() const override {
 		return new T();
 	}
+#ifdef ABUILD_SERIALIZER
+	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const {
+		dynamic_cast<T*>(_base)->serialize(node);
+	}
+	virtual void serialize(B* _base, serializer::json::DeserializerNode& node) const {
+		dynamic_cast<T*>(_base)->serialize(node);
+	};
+	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const {
+		dynamic_cast<T*>(_base)->serialize(node);
+	}
+	virtual void serialize(B* _base, serializer::binary::DeserializerNode& node) const {
+		dynamic_cast<T*>(_base)->serialize(node);
+	};
+#endif
+
 };
 
 class GenericFactory {
@@ -95,6 +130,7 @@ public:
 		constructorList[_name].emplace_back(new BaseTT<Base, T>());
 		inheritanceMap[typeid(Base).hash_code()].insert(_name);
 	}
+
 	template<typename T>
 	std::string const& getType() const {
 		return classList.at(typeid(T).hash_code());
@@ -135,6 +171,24 @@ public:
 		}
 		throw std::runtime_error("couldn't create shared item");
 	}
+#ifdef ABUILD_SERIALIZER
+	template<typename Base, typename Node>
+	void serialize(Base* _base, Node& _node) {
+		auto _name = getType(_base);
+		for (auto const& base : constructorList.at(_name)) {
+			//!TODO cast really needed?
+			auto ptr = dynamic_cast<BaseT<Base> const*>(base.get());
+			if (ptr != nullptr) {
+				ptr->serialize(_base, _node);
+				return;
+			}
+		}
+		throw std::runtime_error("couldn't serialize item");
+
+	}
+#endif
+
+
 };
 
 
@@ -172,6 +226,11 @@ template<typename T, typename std::enable_if<not std::is_polymorphic<T>::value>:
 inline std::set<std::string> getClassList() {
 	throw std::runtime_error("this should not happen (genericFactory");
 }
+template<typename T>
+inline bool hasType(T* t) {
+	return GenericFactory::getInstance().hasType(t);
+}
+
 
 
 
@@ -203,6 +262,14 @@ inline std::unique_ptr<T> make_unique(T* _t) {
 	auto type = GenericFactory::getInstance().getType(_t);
 	return make_unique<T>(type);
 }
+
+#ifdef ABUILD_SERIALIZER
+template<typename Base, typename Node>
+inline void serialize(Base* _base, Node& _node) {
+	GenericFactory::getInstance().serialize(_base, _node);
+}
+#endif
+
 
 
 }
