@@ -7,7 +7,10 @@
 #include <type_traits>
 #include <vector>
 
+
 #ifdef ABUILD_SERIALIZER
+#include <serializer/has_serialize_function.h>
+
 	namespace serializer {
 	namespace json {
 		class SerializerNode;
@@ -71,20 +74,31 @@ public:
 		return new T();
 	}
 #ifdef ABUILD_SERIALIZER
-	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const {
-		dynamic_cast<T*>(_base)->serialize(node);
+	void serialize(B* _base, serializer::json::SerializerNode& node) const override {
+		implSerialize(dynamic_cast<T*>(_base), node);
 	}
-	virtual void serialize(B* _base, serializer::json::DeserializerNode& node) const {
-		dynamic_cast<T*>(_base)->serialize(node);
+	void serialize(B* _base, serializer::json::DeserializerNode& node) const override {
+		implSerialize(dynamic_cast<T*>(_base), node);
 	};
-	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const {
-		dynamic_cast<T*>(_base)->serialize(node);
+	void serialize(B* _base, serializer::binary::SerializerNode& node) const override{
+		implSerialize(dynamic_cast<T*>(_base), node);
 	}
-	virtual void serialize(B* _base, serializer::binary::DeserializerNode& node) const {
-		dynamic_cast<T*>(_base)->serialize(node);
+	void serialize(B* _base, serializer::binary::DeserializerNode& node) const override{
+		implSerialize(dynamic_cast<T*>(_base), node);
 	};
-#endif
 
+private:
+	template<typename Node, typename Type, typename std::enable_if<serializer::has_serialize_function<Type, Node>::value>::type* = nullptr>
+	void implSerialize(Type* _type, Node& node) const {
+		_type->serialize(node);
+	}
+	template<typename Node, typename Type, typename std::enable_if<not serializer::has_serialize_function<Type, Node>::value>::type* = nullptr>
+	void implSerialize(Type* _type, Node& node) const {
+		throw std::runtime_error("can't serialize this genericFactory item, because it has no serialize function");
+	}
+
+
+#endif
 };
 
 class GenericFactory {
