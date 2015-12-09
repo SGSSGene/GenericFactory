@@ -244,8 +244,10 @@ template<typename T>
 inline bool hasType(T* t) {
 	return GenericFactory::getInstance().hasType(t);
 }
-
-
+template<typename T>
+inline std::string const& getTypeName(T* t) {
+	return GenericFactory::getInstance().getType(t);
+}
 
 
 template<typename T, typename std::enable_if<std::is_polymorphic<T>::value>::type* = nullptr>
