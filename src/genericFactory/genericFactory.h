@@ -12,11 +12,15 @@
 #include <serializer/has_serialize_function.h>
 
 	namespace serializer {
+	namespace binary {
+		class SerializerNode;
+		class DeserializerNode;
+	}
 	namespace json {
 		class SerializerNode;
 		class DeserializerNode;
 	}
-	namespace binary {
+	namespace yaml {
 		class SerializerNode;
 		class DeserializerNode;
 	}}
@@ -37,10 +41,12 @@ private:
 	virtual B*                 createUniqueBase() const = 0;
 public:
 #ifdef ABUILD_SERIALIZER
-	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const = 0;
-	virtual void serialize(B* _base, serializer::json::DeserializerNode& node) const = 0;
 	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const = 0;
 	virtual void serialize(B* _base, serializer::binary::DeserializerNode& node) const = 0;
+	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const = 0;
+	virtual void serialize(B* _base, serializer::json::DeserializerNode& node) const = 0;
+	virtual void serialize(B* _base, serializer::yaml::SerializerNode& node)   const = 0;
+	virtual void serialize(B* _base, serializer::yaml::DeserializerNode& node) const = 0;
 #endif
 	template<typename T2>
 	std::shared_ptr<T2> createShared() const {
@@ -74,16 +80,22 @@ public:
 		return new T();
 	}
 #ifdef ABUILD_SERIALIZER
+	void serialize(B* _base, serializer::binary::SerializerNode& node) const override{
+		implSerialize(dynamic_cast<T*>(_base), node);
+	}
+	void serialize(B* _base, serializer::binary::DeserializerNode& node) const override{
+		implSerialize(dynamic_cast<T*>(_base), node);
+	};
 	void serialize(B* _base, serializer::json::SerializerNode& node) const override {
 		implSerialize(dynamic_cast<T*>(_base), node);
 	}
 	void serialize(B* _base, serializer::json::DeserializerNode& node) const override {
 		implSerialize(dynamic_cast<T*>(_base), node);
 	};
-	void serialize(B* _base, serializer::binary::SerializerNode& node) const override{
+	void serialize(B* _base, serializer::yaml::SerializerNode& node) const override {
 		implSerialize(dynamic_cast<T*>(_base), node);
 	}
-	void serialize(B* _base, serializer::binary::DeserializerNode& node) const override{
+	void serialize(B* _base, serializer::yaml::DeserializerNode& node) const override {
 		implSerialize(dynamic_cast<T*>(_base), node);
 	};
 
