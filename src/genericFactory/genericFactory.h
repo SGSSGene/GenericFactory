@@ -149,12 +149,12 @@ public:
 		inheritanceMap[typeid(T).hash_code()].insert(_name);
 	}
 
-	template<typename T, typename Base, typename ...Bases>
+	template<typename T, typename BASE, typename ...Bases>
 	void registerClass(std::string const& _name) {
 		registerClass<T, Bases...>(_name);
 		classList[typeid(T).hash_code()] = _name;
-		constructorList[_name].emplace_back(new BaseTT<Base, T>());
-		inheritanceMap[typeid(Base).hash_code()].insert(_name);
+		constructorList[_name].emplace_back(new BaseTT<BASE, T>());
+		inheritanceMap[typeid(BASE).hash_code()].insert(_name);
 	}
 
 	template<typename T>
@@ -198,12 +198,11 @@ public:
 		throw std::runtime_error("couldn't create shared item");
 	}
 #ifdef ABUILD_SERIALIZER
-	template<typename Base, typename Node>
-	void serialize(Base* _base, Node& _node) {
+	template<typename BASE, typename Node>
+	void serialize(BASE* _base, Node& _node) {
 		auto _name = getType(_base);
 		for (auto const& base : constructorList.at(_name)) {
-			//!TODO cast really needed?
-			auto ptr = dynamic_cast<BaseT<Base> const*>(base.get());
+			auto ptr = dynamic_cast<BaseT<BASE> const*>(base.get());
 			if (ptr != nullptr) {
 				ptr->serialize(_base, _node);
 				return;
@@ -231,12 +230,12 @@ private:
 		static_assert(std::is_polymorphic<T2>::value, "must be polymorphic type");
 		static_assert(std::has_virtual_destructor<T2>::value, "must have a virtual destructor");
 	}
-	template<typename T2, typename Base, typename ...Bases2>
+	template<typename T2, typename BASE, typename ...Bases2>
 	void staticAssertClass() const {
-		staticAssertClass<Base, Bases2...>();
-		static_assert(std::is_polymorphic<Base>::value, "must be polymorphic type");
+		staticAssertClass<BASE, Bases2...>();
+		static_assert(std::is_polymorphic<BASE>::value, "must be polymorphic type");
 		static_assert(std::is_polymorphic<T2>::value, "must be polymorphic type");
-		static_assert(std::is_base_of<Base, T>::value, "Base must be base of T");
+		static_assert(std::is_base_of<BASE, T>::value, "Base must be base of T");
 		static_assert(std::has_virtual_destructor<T2>::value, "must have a virtual destructor");
 	}
 
@@ -292,8 +291,8 @@ inline std::unique_ptr<T> make_unique(T* _t) {
 }
 
 #ifdef ABUILD_SERIALIZER
-template<typename Base, typename Node>
-inline void serialize(Base* _base, Node& _node) {
+template<typename BASE, typename Node>
+inline void serialize(BASE* _base, Node& _node) {
 	GenericFactory::getInstance().serialize(_base, _node);
 }
 #endif
