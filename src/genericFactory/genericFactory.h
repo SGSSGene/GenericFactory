@@ -142,18 +142,22 @@ public:
 	}
 
 	template<typename T, typename std::enable_if<not std::is_abstract<T>::value>::type* = nullptr>
-	void registerClass(std::string const& _name) {
+	void registerClass(std::string const& _name, bool top = true) {
 		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
 		classList[typeid(T).hash_code()] = _name;
-		constructorList[_name].emplace_back(new BaseTT<T, T>());
+		if (top) {
+			constructorList[_name].emplace_back(new BaseTT<T, T>());
+		}
 		inheritanceMap[typeid(T).hash_code()].insert(_name);
 	}
 
 	template<typename T, typename BASE, typename ...Bases>
-	void registerClass(std::string const& _name) {
-		registerClass<T, Bases...>(_name);
+	void registerClass(std::string const& _name, bool top = true) {
+		registerClass<T, Bases...>(_name, false);
 		classList[typeid(T).hash_code()] = _name;
-		constructorList[_name].emplace_back(new BaseTT<BASE, T>());
+		if (top) {
+			constructorList[_name].emplace_back(new BaseTT<BASE, T>());
+		}
 		inheritanceMap[typeid(BASE).hash_code()].insert(_name);
 	}
 
