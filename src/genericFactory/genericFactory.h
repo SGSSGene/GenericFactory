@@ -37,8 +37,9 @@ public:
 template<typename B>
 class BaseT : public Base {
 private:
-	virtual std::shared_ptr<B> createSharedBase() const = 0;
-	virtual B*                 createUniqueBase() const = 0;
+	virtual std::shared_ptr<B> createSharedBase()     const = 0;
+	virtual B*                 createUniqueBase()     const = 0;
+	virtual void               copyBase(B*, B const*) const = 0;
 public:
 #ifdef ABUILD_SERIALIZER
 	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const = 0;
@@ -67,8 +68,12 @@ public:
 		}
 		return std::unique_ptr<T2> { ptr2 };
 	}
-
+	template<typename T2>
+	void copy(T2* ptr1, T2 const* ptr2) const {
+		copyBase(ptr1, ptr2);
+	}
 };
+
 
 template<typename B, typename T>
 class BaseTT final : public BaseT<B> {
@@ -79,6 +84,23 @@ public:
 	B* createUniqueBase() const override {
 		return new T();
 	}
+	void copyBase(B* _ptr1, B const* _ptr2) const override {
+		copyBaseImpl<T>(_ptr1, _ptr2);
+	}
+
+private:
+	template <typename Type, typename std::enable_if<not std::is_assignable<Type, Type>::value>::type* = nullptr>
+	void copyBaseImpl(B* _ptr1, B const* _ptr2) const {
+		throw std::runtime_error("copying class, that is not assignable");
+	}
+
+	template <typename Type, typename std::enable_if<std::is_assignable<Type, Type>::value>::type* = nullptr>
+	void copyBaseImpl(B* _ptr1, B const* _ptr2) const {
+		auto ptr1 = dynamic_cast<T*>(_ptr1);
+		auto ptr2 = dynamic_cast<T const*>(_ptr2);
+		*ptr1 = *ptr2;
+	}
+public:
 #ifdef ABUILD_SERIALIZER
 	void serialize(B* _base, serializer::binary::SerializerNode& node) const override{
 		implSerialize(dynamic_cast<T*>(_base), node);
@@ -108,8 +130,6 @@ private:
 	void implSerialize(Type* _type, Node& node) const {
 		throw std::runtime_error("can't serialize this genericFactory item, because it has no serialize function");
 	}
-
-
 #endif
 };
 
@@ -117,6 +137,7 @@ class GenericFactory {
 private:
 	std::map<std::size_t, std::string>                        classList;
 	std::map<std::string, std::vector<std::unique_ptr<Base>>> constructorList;
+	std::map<std::string, std::vector<std::unique_ptr<Base>>> copyList;
 	std::map<std::size_t, std::set<std::string>>              inheritanceMap;
 
 public:
@@ -133,7 +154,6 @@ public:
 		}
 		return inheritanceMap.at(hash);
 	}
-
 
 	template<typename T, typename std::enable_if<std::is_abstract<T>::value>::type* = nullptr>
 	void registerClass(std::string const& _name) {
@@ -200,6 +220,17 @@ public:
 			}
 		}
 		throw std::runtime_error("couldn't create shared item");
+	}
+
+	template<typename T>
+	void copy(std::string const& _name, T* _dest, T const* _src) const {
+		for (auto const& base : constructorList.at(_name)) {
+			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
+			if (ptr != nullptr) {
+				ptr->copy(_dest, _src);
+				return;
+			}
+		}
 	}
 #ifdef ABUILD_SERIALIZER
 	template<typename BASE, typename Node>
@@ -292,6 +323,14 @@ template<typename T>
 inline std::unique_ptr<T> make_unique(T* _t) {
 	auto type = GenericFactory::getInstance().getType(_t);
 	return make_unique<T>(type);
+}
+
+template<typename T>
+inline std::unique_ptr<T> copy_unique(T* _t) {
+	auto type = GenericFactory::getInstance().getType(_t);
+	auto ptr = make_unique<T>(type);
+	GenericFactory::getInstance().copy(type, ptr.get(), _t);
+	return ptr;
 }
 
 #ifdef ABUILD_SERIALIZER
