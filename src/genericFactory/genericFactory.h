@@ -98,7 +98,7 @@ private:
 	void copyBaseImpl(B* _ptr1, B const* _ptr2) const {
 		auto ptr1 = dynamic_cast<T*>(_ptr1);
 		auto ptr2 = dynamic_cast<T const*>(_ptr2);
-		*ptr1 = *ptr2;
+		*ptr1 = *ptr2; //!WARNING If compilation fails in this line, explicitly delete your assignment operator
 	}
 public:
 #ifdef ABUILD_SERIALIZER
