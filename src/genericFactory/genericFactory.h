@@ -142,8 +142,8 @@ private:
 
 public:
 	static GenericFactory& getInstance() {
-		static GenericFactory* instance = new GenericFactory();
-		return *instance;
+		static GenericFactory instance;
+		return instance;
 	}
 
 	template<typename T>
