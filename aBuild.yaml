@@ -1,13 +1,6 @@
+name: GenericFactory
 extDependencies:
   - url: git@cakeface.de:aBuild/gtest
-name: GenericFactory
 projects:
   - path: genericFactory
-  - wholeArchive: true
-    dependencies:
-      - GenericFactory/genericFactory
-    path: exampleLib
-  - path: testGenericFactory
-    dependencies:
-      - gtest/gtest
-      - GenericFactory/exampleLib
+    wholeArchive: true
