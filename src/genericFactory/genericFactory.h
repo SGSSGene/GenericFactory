@@ -8,7 +8,7 @@
 #include <vector>
 
 
-#ifdef ABUILD_SERIALIZER
+#ifdef BUSY_SERIALIZER
 #include <serializer/has_serialize_function.h>
 
 	namespace serializer {
@@ -41,7 +41,7 @@ private:
 	virtual B*                 createUniqueBase()     const = 0;
 	virtual void               copyBase(B*, B const*) const = 0;
 public:
-#ifdef ABUILD_SERIALIZER
+#ifdef BUSY_SERIALIZER
 	virtual void serialize(B* _base, serializer::binary::SerializerNode& node)   const = 0;
 	virtual void serialize(B* _base, serializer::binary::DeserializerNode& node) const = 0;
 	virtual void serialize(B* _base, serializer::json::SerializerNode& node)   const = 0;
@@ -101,7 +101,7 @@ private:
 		*ptr1 = *ptr2; //!WARNING If compilation fails in this line, explicitly delete your assignment operator
 	}
 public:
-#ifdef ABUILD_SERIALIZER
+#ifdef BUSY_SERIALIZER
 	void serialize(B* _base, serializer::binary::SerializerNode& node) const override{
 		implSerialize(dynamic_cast<T*>(_base), node);
 	}
@@ -228,7 +228,7 @@ public:
 			}
 		}
 	}
-#ifdef ABUILD_SERIALIZER
+#ifdef BUSY_SERIALIZER
 	template<typename BASE, typename Node>
 	void serialize(BASE* _base, Node& _node) {
 		auto _name = getType(_base);
@@ -329,7 +329,7 @@ inline std::unique_ptr<T> copy_unique(T* _t) {
 	return ptr;
 }
 
-#ifdef ABUILD_SERIALIZER
+#ifdef BUSY_SERIALIZER
 template<typename BASE, typename Node>
 inline void serialize(BASE* _base, Node& _node) {
 	GenericFactory::getInstance().serialize(_base, _node);
