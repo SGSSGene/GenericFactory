@@ -1,6 +1,7 @@
 name: GenericFactory
-extDependencies:
+extRepositories:
   - url: git@cakeface.de:aBuild/gtest
 projects:
-  - path: genericFactory
+  - name: genericFactory
     wholeArchive: true
+    autoDependenciesDiscovery: false
