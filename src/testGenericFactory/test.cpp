@@ -33,6 +33,11 @@ public:
 	}
 };
 
+class C {
+public:
+	virtual ~C() {}
+};
+
 
 // Register class at factory
 namespace {
@@ -96,6 +101,16 @@ TEST(Test, Test10) {
 	std::set<std::string> expect {"D1_of_A", "D2_of_A", "D1_of_D1_of_A"};
 	EXPECT_EQ(expect, names);
 }
+
+TEST(Test, Test11) {
+	EXPECT_EQ(0, genericFactory::getClassList<C>().size());
+	{
+		genericFactory::Register<C> base("C");
+		EXPECT_EQ(1, genericFactory::getClassList<C>().size());
+	}
+	EXPECT_EQ(0, genericFactory::getClassList<C>().size());
+}
+
 
 
 

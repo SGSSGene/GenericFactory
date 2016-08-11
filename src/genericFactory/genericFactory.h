@@ -184,6 +184,68 @@ public:
 		inheritanceMap[typeid(BASE).hash_code()].insert(_name);
 	}
 
+	template<typename T, typename std::enable_if<std::is_abstract<T>::value>::type* = nullptr>
+	void unregisterClass(std::string const& _name) {
+		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+
+		auto iter = classList.find(typeid(T).hash_code());
+		if (iter != classList.end()) {
+			classList.erase(iter);
+		}
+	}
+
+	template<typename T, typename std::enable_if<not std::is_abstract<T>::value>::type* = nullptr>
+	void unregisterClass(std::string const& _name) {
+		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+
+		{
+			auto iter = classList.find(typeid(T).hash_code());
+			if (iter != classList.end()) {
+				classList.erase(iter);
+			}
+		}
+		{
+			auto iter = constructorList.find(_name);
+			if (iter != constructorList.end()) {
+				constructorList.erase(iter);
+			}
+		}
+		{
+			auto iter = inheritanceMap.at(typeid(T).hash_code()).find(_name);
+			if (iter != inheritanceMap.at(typeid(T).hash_code()).end()) {
+				inheritanceMap[typeid(T).hash_code()].erase(iter);
+			}
+		}
+	}
+
+	template<typename T, typename BASE, typename ...Bases>
+	void unregisterClass(std::string const& _name) {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+		registerClass<T, Bases...>(_name);
+
+		{
+			auto iter = classList.find(typeid(T).hash_code());
+			if (iter != classList.end()) {
+				classList.erase(iter);
+			}
+		}
+		{
+			auto iter = constructorList.find(_name);
+			if (iter != constructorList.end()) {
+				constructorList.erase(iter);
+			}
+		}
+		{
+			auto iter = inheritanceMap.at(typeid(BASE).hash_code()).find(_name);
+			if (iter != inheritanceMap.at(typeid(BASE).hash_code()).end()) {
+				inheritanceMap[typeid(BASE).hash_code()].erase(iter);
+			}
+		}
+	}
+
+
 	template<typename T>
 	std::string const& getType() const {
 		std::lock_guard<std::recursive_mutex> lock(mMutex);
@@ -264,10 +326,16 @@ public:
 
 template<typename T, typename ...Bases>
 class Register {
+	std::string mName;
 public:
-	Register(std::string const& _name) {
+	Register(std::string const& _name)
+		: mName(_name)
+	{
 		staticAssertClass<T, Bases...>();
-		GenericFactory::getInstance().registerClass<T, Bases...>(_name);
+		GenericFactory::getInstance().registerClass<T, Bases...>(mName);
+	}
+	~Register() {
+		GenericFactory::getInstance().unregisterClass<T, Bases...>(mName);
 	}
 private:
 	template<typename T2>
