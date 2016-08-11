@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <typeinfo>
@@ -140,6 +141,8 @@ private:
 	std::map<std::string, std::vector<std::unique_ptr<Base>>> copyList;
 	std::map<std::size_t, std::set<std::string>>              inheritanceMap;
 
+	mutable std::recursive_mutex mMutex;
+
 public:
 	static GenericFactory& getInstance() {
 		static GenericFactory instance;
@@ -148,6 +151,7 @@ public:
 
 	template<typename T>
 	std::set<std::string> getValidNames() const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		auto hash = typeid(T).hash_code();
 		if (inheritanceMap.count(hash) == 0) {
 			return {};
@@ -158,12 +162,14 @@ public:
 	template<typename T, typename std::enable_if<std::is_abstract<T>::value>::type* = nullptr>
 	void registerClass(std::string const& _name) {
 		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		classList[typeid(T).hash_code()] = _name;
 	}
 
 	template<typename T, typename std::enable_if<not std::is_abstract<T>::value>::type* = nullptr>
 	void registerClass(std::string const& _name) {
 		static_assert(std::is_polymorphic<T>::value, "must be polymorphic type");
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<T, T>());
 		inheritanceMap[typeid(T).hash_code()].insert(_name);
@@ -171,6 +177,7 @@ public:
 
 	template<typename T, typename BASE, typename ...Bases>
 	void registerClass(std::string const& _name) {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		registerClass<T, Bases...>(_name);
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<BASE, T>());
@@ -179,26 +186,31 @@ public:
 
 	template<typename T>
 	std::string const& getType() const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		return classList.at(typeid(T).hash_code());
 	}
 
 	template<typename T>
 	std::string const& getType(T* t) {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		return classList.at(typeid(*t).hash_code());
 	}
 
 	template<typename T>
 	bool hasType() const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		return classList.find(typeid(T).hash_code()) != classList.end();
 	}
 	template<typename T>
 	bool hasType(T* t) const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		return classList.find(typeid(*t).hash_code()) != classList.end();
 	}
 
 
 	template<typename T>
 	std::unique_ptr<T> getUniqueItem(std::string const& _name) const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		for (auto const& base : constructorList.at(_name)) {
 			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
 			if (ptr != nullptr) {
@@ -209,6 +221,7 @@ public:
 	}
 	template<typename T>
 	std::shared_ptr<T> getSharedItem(std::string const _name) const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		for (auto const& base : constructorList.at(_name)) {
 			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
 			if (ptr != nullptr) {
@@ -220,6 +233,7 @@ public:
 
 	template<typename T>
 	void copy(std::string const& _name, T* _dest, T const* _src) const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		for (auto const& base : constructorList.at(_name)) {
 			auto ptr = dynamic_cast<BaseT<T> const*>(base.get());
 			if (ptr != nullptr) {

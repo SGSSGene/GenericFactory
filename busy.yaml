@@ -4,3 +4,6 @@ extRepositories:
 projects:
   - name: libExample
     wholeArchive: true
+  - name: genericFactory
+    depLibraries:
+      - pthread

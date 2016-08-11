@@ -4,7 +4,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <genericFactory/genericFactory.h>
-#include <exampleLib/A.h>
+#include <libExample/A.h>
 
 class B {
 public:
