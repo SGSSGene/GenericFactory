@@ -4,6 +4,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <thread>
 #include <typeinfo>
 #include <type_traits>
 #include <vector>
@@ -143,10 +144,36 @@ private:
 
 	mutable std::recursive_mutex mMutex;
 
+	struct RecorderItem {
+		std::size_t mBaseType;
+		std::vector<std::string> mNames;
+	};
+	std::map<std::thread::id, RecorderItem> mItemRecorder;
+
 public:
 	static GenericFactory& getInstance() {
 		static GenericFactory instance;
 		return instance;
+	}
+
+	template <typename T>
+	void activateRegisterRecorder() {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+		mItemRecorder[std::this_thread::get_id()] = { typeid(T).hash_code(), {}};
+	}
+	auto deactivateRegisterRecorder() -> std::vector<std::string> {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+		auto retValue = std::move(mItemRecorder[std::this_thread::get_id()].mNames);
+		mItemRecorder.erase(std::this_thread::get_id());
+		return retValue;
+	}
+	template <typename T>
+	void registerRecorderItem(std::string const& _name) {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+		auto iter = mItemRecorder.find(std::this_thread::get_id());
+		if (iter != mItemRecorder.end() and typeid(T).hash_code() == iter->second.mBaseType) {
+			iter->second.mNames.push_back(_name);
+		}
 	}
 
 	template<typename T>
@@ -173,6 +200,8 @@ public:
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<T, T>());
 		inheritanceMap[typeid(T).hash_code()].insert(_name);
+
+		registerRecorderItem<T>(_name);
 	}
 
 	template<typename T, typename BASE, typename ...Bases>
@@ -182,6 +211,7 @@ public:
 		classList[typeid(T).hash_code()] = _name;
 		constructorList[_name].emplace_back(new BaseTT<BASE, T>());
 		inheritanceMap[typeid(BASE).hash_code()].insert(_name);
+		registerRecorderItem<BASE>(_name);
 	}
 
 	template<typename T, typename std::enable_if<std::is_abstract<T>::value>::type* = nullptr>
@@ -409,6 +439,14 @@ inline std::unique_ptr<T> copy_unique(T* _t) {
 	auto ptr = make_unique<T>(type);
 	GenericFactory::getInstance().copy(type, ptr.get(), _t);
 	return ptr;
+}
+
+template <typename T>
+inline void activateRegisterRecorder() {
+	GenericFactory::getInstance().activateRegisterRecorder<T>();
+}
+inline auto deactivateRegisterRecorder() -> std::vector<std::string> {
+	return GenericFactory::getInstance().deactivateRegisterRecorder();
 }
 
 #ifdef BUSY_SERIALIZER
