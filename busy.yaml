@@ -1,6 +1,6 @@
 name: GenericFactory
 extRepositories:
-  - url: git@cakeface.de:aBuild/gtest
+  - url: http://github.com/SGSSGene/gtest.git
 projects:
   - name: libExample
     wholeArchive: true
